@@ -1,10 +1,11 @@
 import numpy as np
 
-class regression_function:
+
+class RegressionClass(object):
     """
     Class definition for getting statistics of the appropriate regression function
     """
-    def __init__(self, order=1, string='logistic', features=[], labels=[]):
+    def __init__(self, features, labels, order=1, string='logistic'):
         """
 
         Args:
@@ -50,9 +51,9 @@ class regression_function:
 
         """
         total_value = 0
-        for i in range(len(self.labels)):
-            total_value += self.labels[i]*np.log(self.prediction(self.method, x, self.features[i])) \
-                           + (1-self.labels[i])*np.log(self.prediction(self.method, x, self.features[i]))
+        for label, feature in zip(self.labels, self.features):
+            true_pr = self.prediction(method=self.method, x=x, w=feature)
+            total_value += label*np.log(true_pr) + (1-label)*np.log(1 - true_pr)
         return total_value
 
     def grad_update(self, x):
@@ -66,8 +67,9 @@ class regression_function:
 
         """
         total_update = 0
-        for i in range(len(self.labels)):
-            total_update += (self.prediction(self.method, x, self.features[i]) - self.labels[i])*self.features[i]
+        for label, feature in zip(self.labels, self.features):
+            true_pr = self.prediction(method=self.method, x=x, w=feature)
+            total_update += (true_pr - label)*feature
         return total_update
 
     def hess_update(self, x):
