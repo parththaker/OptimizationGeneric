@@ -112,11 +112,14 @@ class DADMMMethod(object):
 
 
 class GradDescent(object):
-    def __init__(self, dim, nodes):
+    def __init__(self, dim, nodes =1):
         self.dim = dim
         self.nodes = nodes
 
-        self.x = np.array([np.zeros(dim)] * nodes)
+        if nodes != 1:
+            self.x = np.array([np.zeros(dim)] * nodes)
+        else:
+            self.x = np.random.random()*10
 
     def update(self, grad_f, step_size, active_nodes):
         if active_nodes==-1:

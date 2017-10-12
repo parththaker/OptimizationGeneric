@@ -1,6 +1,12 @@
 import numpy as np
 import math
 
+def grad_norm(x, y):
+    return 2*(x-y)
+
+def norm_vec(x,y):
+    return np.linalg.norm(x-y)
+
 class LogisticRegressionClass(object):
 
     def __init__(self, features, labels, order=1):
@@ -102,25 +108,14 @@ class LinearRegressionClass(object):
             if hasattr(self, 'hess_f_value'):
                 self.hess_f_value = self.hess_update(x=new_x)
 
-class NonSmoothRegressionClass(object):
+class NonDiffRegressionClass(object):
 
-    def __init__(self, nodes, order=1):
+    def __init__(self, order=1):
 
         self.order = order
-        self.nodes = nodes
-        self.coefficients = self.generate_coefficients(nodes)
         self.f_value = 0
         if self.order > 0:
             self.grad_f_value = 0
-
-    def generate_coefficients(self, nodes):
-
-        if nodes == 1:
-            return [0]
-        else:
-            coeff = np.random.rand(nodes, 1)
-            coeff[-1] = -sum(coeff[:-1])
-            return coeff
 
     def function_update(self, x):
 
@@ -143,25 +138,14 @@ class NonSmoothRegressionClass(object):
             self.grad_f_value = self.grad_update(x=new_x)
 
 
-class SmoothRegressionClass(object):
+class DiffRegressionClass(object):
 
-    def __init__(self, nodes, order=1):
+    def __init__(self, order=1):
 
         self.order = order
-        self.nodes = nodes
-        self.coefficients = self.generate_coefficients(nodes)
         self.f_value = 0
         if self.order > 0:
             self.grad_f_value = 0
-
-    def generate_coefficients(self, nodes):
-
-        if nodes == 1:
-            return [0]
-        else:
-            coeff = np.random.rand(nodes, 1)
-            coeff[-1] = -sum(coeff[:-1])
-            return coeff
 
     def function_update(self, x):
 

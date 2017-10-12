@@ -22,12 +22,23 @@ x_static = np.array([[ 17.84591693, -20.31212513, -5.34325409],
 
 ################################################################
 
+def get_feature_labels(filename, entries):
+
+    dataset = get_random_dataset(filename, entries)
+
+    labels = np.array([i[-1] for i in dataset])
+
+    features = [i[:-1] for i in dataset]
+    features = append_static(features, 1)
+
+    return features, labels
+
 def get_random_dataset(filename, entries):
     count = 0
     with open(filename, 'rb') as csvfile:
         spamreader = csv.reader(csvfile, delimiter=',',
                             quotechar='|')
-        for row in spamreader:
+        for _ in spamreader:
             count += 1
 
     dataset = []
