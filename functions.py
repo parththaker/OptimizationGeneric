@@ -159,10 +159,52 @@ class DiffRegressionClass(object):
         if abs(x) > 1:
             return np.sign(x)
         else:
-            return 2*x
+            return x
 
     def rerun(self, new_x):
 
         self.f_value = self.function_update(x=new_x)
         if hasattr(self, 'grad_f_value'):
             self.grad_f_value = self.grad_update(x=new_x)
+
+class HuberLossClass(object):
+
+    def __init__(self, alpha ,order=1):
+
+        self.order = order
+        self.f_value = 0
+        self.alpha = alpha
+        if self.order > 0:
+            self.grad_f_value = 0
+        if self.order > 1:
+            self.hess_f_value = 0
+
+    def function_update(self, x):
+
+        if abs(x) > self.alpha:
+            return self.alpha*(abs(x) - self.alpha/2.)
+        else:
+            return x**2/2.
+
+    def grad_update(self, x):
+
+        if abs(x) > self.alpha:
+            return np.sign(x)*self.alpha
+        else:
+            return x
+
+    def hess_update(self, x):
+
+        if abs(x) > self.alpha:
+            return 0
+        else:
+            return 1
+
+    def rerun(self, new_x):
+
+        self.f_value = self.function_update(x=new_x)
+        if hasattr(self, 'grad_f_value'):
+            self.grad_f_value = self.grad_update(x=new_x)
+        if hasattr(self, 'hess_f_value'):
+            self.grad_f_value = self.hess_update(x=new_x)
+

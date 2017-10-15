@@ -10,6 +10,7 @@ import methods
 datafile = 'Dataset/linear_regression.csv'
 entries = 10
 epoch_limit = 10000
+huber_param = 5
 
 # End of Parameteres
 
@@ -37,6 +38,8 @@ if __name__=="__main__":
         cls = functions.DiffRegressionClass()
     elif algo_type == 'ndiff':
         cls = functions.NonDiffRegressionClass()
+    elif algo_type == 'huber':
+        cls = functions.HuberLossClass(alpha=huber_param)
     else:
         print('You entered some wierd "type". Please correct it. Exiting...')
         exit()
@@ -57,7 +60,6 @@ if __name__=="__main__":
         if epoch > epoch_limit:
             print("Epoch count reached limit. \nIncrease the limit and continue.")
             break
-
 
     print("Error : ", curr_error)
     print("X : ", x_old)
