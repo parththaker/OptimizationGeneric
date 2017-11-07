@@ -1,5 +1,19 @@
 import numpy as np
 import scipy.optimize as opt
+import math
+
+def get_descent_method(descent_type, dim, x=None):
+
+    if descent_type=='grad':
+        met = GradDescent(dim=dim, x=x)
+    elif descent_type=='accelerated':
+        met = AcceleratedDescent(dim=dim, x=x)
+    elif descent_type=='stoc':
+        met = StochasticMethod1(dim=dim, x=x)
+    else:
+        print('You entered some wierd "type". Please correct it. Exiting...')
+        exit()
+    return met
 
 class DLADMMMethod(object):
     # Needs reforms, not working as expected
@@ -112,19 +126,64 @@ class DADMMMethod(object):
 
 
 class GradDescent(object):
-    def __init__(self, dim, nodes =1):
+    def __init__(self, dim , x=None):
         self.dim = dim
-        self.nodes = nodes
-
-        if nodes != 1:
-            self.x = np.array([np.zeros(dim)] * nodes)
+        if x==None:
+            self.x = np.random.rand(dim)
         else:
-            self.x = np.random.random()*10
+            self.x = x
 
-    def update(self, grad_f, step_size, active_nodes):
-        if active_nodes==-1:
-            self.x = self.x - step_size * grad_f(self.x)
+    def update(self, grad_f, step_size):
+        self.x = self.x - step_size*grad_f(self.x)
+
+class AcceleratedDescent(object):
+    def __init__(self, dim, x=None):
+
+        self.lam_current = 0.
+        self.lam_old = 0.
+        self.gamma = 0.
+        if x==None:
+            self.x = np.random.rand(dim)
         else:
-            for i in active_nodes:
-                print(self.x[i], step_size, grad_f(self.x[i]))
-                self.x[i] = self.x[i] - step_size*grad_f(self.x[i])
+            self.x = x
+        self.y = self.x
+
+    def lambda_update(self):
+        self.lam_old = self.lam_current
+        self.lam_current = (1+math.sqrt(1+4*self.lam_old**2))/2.
+
+    def gamma_update(self):
+        self.gamma = (1-self.lam_old)/self.lam_current
+
+    def update(self, grad_f, step_size):
+        self.lambda_update()
+        self.gamma_update()
+        new_y = self.x - step_size*grad_f(self.x)
+        self.x = (1-self.gamma)*new_y + self.gamma*self.y
+        self.y = new_y
+
+
+class StochasticMethod1(object):
+    def __init__(self, dim, x=None):
+        self.lam = 1.
+        self.gamma = 1.
+        if x==None:
+            self.x = np.random.randn(dim)
+        else:
+            self.x = x
+        self.y = self.x
+        self.count = 1.
+
+    def gamma_update(self):
+        self.gamma = self.gamma + self.lam
+
+    def lambda_update(self):
+        self.lam = np.sqrt(self.count + 1.)
+
+    def update(self, grad_f, step_size):
+        self.y = self.x - step_size*grad_f(self.x)
+        self.x = (1-self.lam/self.gamma)*self.x + (self.lam/self.gamma)*self.y
+        # print((1-self.lam/self.gamma), (self.lam/self.gamma), self.count)
+        self.count = self.count+1
+        self.lambda_update()
+        self.gamma_update()
