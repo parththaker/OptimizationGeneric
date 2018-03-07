@@ -8,11 +8,11 @@ import essentials
 
 # These parameteres soon to be shifted to a config file
 
-config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
+config_setting = essentials.ConfigSectionMap('/Users/parththaker/Dropbox/Coding/OptimizationGeneric/config.ini', 'optimize')
 
-datafile = config_setting['datafile']
-entries = config_setting['entries']
-epoch_limit = config_setting['epoch_limit']
+datafile = str(config_setting['datafile'])
+entries = int(config_setting['entries'])
+epoch_limit = int(config_setting['epoch_limit'])
 
 # End of Parameteres
 
@@ -36,10 +36,11 @@ class BasicOptimization(object):
 
         self.cls, self.dim_vec = functions.get_regression_class(function_type, features=self.features,
                                                                 labels=self.labels, stoc = self.stoc)
-        self.method = methods.get_descent_method(descent_type=method_type, dim=self.dim_vec, x=np.array([-10., -10.]))
+        self.method = methods.get_descent_method(descent_type=method_type, dim=self.dim_vec, x=np.array([-10. for i in range(self.dim_vec)]))
         self.epoch = 0
         self.x = -1 # -1 is an indication that x is not set.
         self.f = -1 # -1 is an indication that x is not set.
+
 
     def run(self, step_size):
         self.method.update(grad_f=self.cls.grad_update, step_size = step_size)

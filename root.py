@@ -13,9 +13,9 @@ import essentials
 
 config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
 
-datafile = config_setting['datafile']
-entries = config_setting['entries']
-epoch_limit = config_setting['epoch_limit']
+datafile = str(config_setting['datafile'])
+entries = int(config_setting['entries'])
+epoch_limit = int(config_setting['epoch_limit'])
 
 # End of Parameteres
 
@@ -63,9 +63,6 @@ if __name__=="__main__":
             curr_error = g_error
 
         epoch+=1
-        print("Error : ", curr_error, x_err)
-        print("X : ", x)
-        print("Epoch reached is : ", epoch)
         if epoch > epoch_limit:
             print("Epoch count reached limit. \nIncrease the limit and continue.")
             break

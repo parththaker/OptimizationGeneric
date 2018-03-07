@@ -227,17 +227,12 @@ class GradTent2Descent(object):
         const = 0.25
         grad_value = 0.
         while grad_value < 0.000005 :
-            print(const)
             eps = self.samplenoise(const = const)
-            print(eps)
             self.y1 = self.x + np.array([eps for i in range(self.dim)])
             self.y2 = self.x - np.array([eps for i in range(self.dim)])
             self.x = self.x - step_size/2.*grad_f(self.y1) - step_size/2.*grad_f(self.y2)
             grad_value = np.linalg.norm(grad_f(self.y1) + grad_f(self.y2))
-            print(grad_f(self.y1), grad_f(self.y1), grad_value)
-            print("Const before :", const)
             const = const*2
-            print("Const after :", const)
 
 
 class GradTentDescent(object):

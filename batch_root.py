@@ -11,9 +11,9 @@ import essentials
 
 config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
 
-datafile = config_setting['datafile']
-entries = config_setting['entries']
-epoch_limit = config_setting['epoch_limit']
+datafile = str(config_setting['datafile'])
+entries = int(config_setting['entries'])
+epoch_limit = int(config_setting['epoch_limit'])
 
 # End of Parameteres
 
