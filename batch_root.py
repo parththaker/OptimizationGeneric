@@ -5,13 +5,16 @@ import argparse
 import data_generator
 import methods
 import plot_graph
+import essentials
 
 # These parameteres soon to be shifted to a config file
 
-datafile = 'Dataset/linear_regression.csv'
-entries = 10
-epoch_limit = 100
-huber_param = 5
+config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
+
+datafile = config_setting['datafile']
+entries = config_setting['entries']
+epoch_limit = config_setting['epoch_limit']
+huber_param = config_setting['huber_param']
 
 # End of Parameteres
 

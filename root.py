@@ -7,12 +7,15 @@ import methods
 import plot_graph
 import basic_optimization
 import error_functions
+import essentials
 
 # These parameteres soon to be shifted to a config file
 
-datafile = 'Dataset/linear_regression.csv'
-entries = 10
-epoch_limit = 10000
+config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
+
+datafile = config_setting['datafile']
+entries = config_setting['entries']
+epoch_limit = config_setting['epoch_limit']
 
 # End of Parameteres
 
