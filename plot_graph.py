@@ -15,59 +15,68 @@ huber_param = 5
 
 # End of Parameteres
 
+def get_cmap(n, name='hsv'):
+    '''Returns a function that maps each index in 0, 1, ..., n-1 to a distinct
+    RGB color; the keyword argument name must be a standard mpl colormap name.'''
+    return plt.cm.get_cmap(name, n)
+
+
 class PlottingError(object):
-    def __init__(self):
-        self.x_err = []
-        self.grad_err = []
-        self.funct_err = []
-        self.epoch = []
+    def __init__(self, stoc = False):
         self.plt = plt
+        self.alpha = 1.
+        if stoc == True:
+            self.alpha = 0.2
+        self.is_x_err = False
+        self.is_func_err = False
+        self.is_grad_err = False
 
-    def update(self, cls, x, epoch):
-        self.funct_err.append(np.abs(cls.function_update(x)))
-        self.grad_err.append(np.linalg.norm(cls.grad_update(x)))
-        self.x_err.append(np.linalg.norm(x))
-        self.epoch.append(epoch)
 
-    def refresh(self):
-        self.x_err = []
-        self.grad_err = []
-        self.funct_err = []
-        self.epoch = []
+    def plot(self, color, x_err, grad_err, funct_err , epoch, alpha = None, label=None):
 
-    def plot(self, color):
+        if not alpha:
+            alpha = self.alpha
 
-        self.plt.figure(1)
-        self.plt.semilogy(self.epoch, self.x_err, color=color, alpha=0.2)
+        if x_err:
+            self.is_x_err=True
+            self.plt.figure(1)
+            self.plt.semilogy(epoch, x_err, color=color, alpha=alpha, label=label)
 
-        self.plt.figure(2)
-        self.plt.semilogy(self.epoch, self.grad_err, color=color, alpha=0.2)
+        if grad_err:
+            self.is_grad_err=True
+            self.plt.figure(2)
+            self.plt.semilogy(epoch, grad_err, color=color, alpha=alpha, label=label)
 
-        self.plt.figure(3)
-        self.plt.semilogy(self.epoch, self.funct_err, color=color, alpha=0.2)
+        if funct_err:
+            self.is_func_err=True
+            self.plt.figure(3)
+            self.plt.semilogy(epoch, funct_err, color=color, alpha=alpha, label=label)
 
     def label(self, title):
 
-        self.plt.figure(1)
-        self.plt.title(title)
-        self.plt.grid(True)
-        self.plt.legend()
-        self.plt.xlabel('Epoch count')
-        self.plt.ylabel(r'$||x||$')
+        if self.is_x_err:
+            self.plt.figure(1)
+            self.plt.title(title)
+            self.plt.grid(True)
+            self.plt.legend()
+            self.plt.xlabel('Epoch count')
+            self.plt.ylabel(r'$||x -x^*||$')
 
-        self.plt.figure(2)
-        self.plt.title(title)
-        self.plt.grid(True)
-        self.plt.legend()
-        self.plt.xlabel('Epoch count')
-        self.plt.ylabel(r'$||\nabla f(x)||$')
+        if self.is_grad_err:
+            self.plt.figure(2)
+            self.plt.title(title)
+            self.plt.grid(True)
+            self.plt.legend()
+            self.plt.xlabel('Epoch count')
+            self.plt.ylabel(r'$||\nabla f(x)||$')
 
-        self.plt.figure(3)
-        self.plt.title(title)
-        self.plt.grid(True)
-        self.plt.legend()
-        self.plt.xlabel('Epoch count')
-        self.plt.ylabel(r'$|f(x)|$')
+        if self.is_func_err:
+            self.plt.figure(3)
+            self.plt.title(title)
+            self.plt.grid(True)
+            self.plt.legend()
+            self.plt.xlabel('Epoch count')
+            self.plt.ylabel(r'$|f(x) - f^*|$')
 
     def show(self):
         self.plt.show()
@@ -126,12 +135,12 @@ if __name__=="__main__":
         dim_vec = 2
 
     elif algo_type == 'trid':
-        cls = functions.TridFunction()
         dim_vec = 10
+        cls = functions.TridFunction(dim_vec=dim_vec)
 
     elif algo_type == 'stoc':
-        cls = functions.StocLossClass(sigma=1., upper=2., constant=0.)
         dim_vec = 10
+        cls = functions.StocLossClass(mean= 0., sigma=1., upper=2., constant=0., dim_vec=dim_vec)
 
     else:
         print('You entered some wierd "type". Please correct it. Exiting...')

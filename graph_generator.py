@@ -9,7 +9,7 @@ def neighbour(matrix, index):
 
 class GenerateGraph(object):
     @staticmethod
-    def generate_graph(nodes, type, prob=0.5, star_loc = 0):
+    def generate_graph(nodes, type, prob=0.7, star_loc = 0):
         base_matrix = np.random.rand(nodes, nodes)
         if type=='random':
             graph = GenerateGraph.create_random_graph(base_matrix, prob=prob)

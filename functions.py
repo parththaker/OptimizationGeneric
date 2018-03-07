@@ -21,6 +21,18 @@ def get_regression_class(algo_type, features=None, labels=None, string='constant
         cls = DiffRegressionClass()
         dim_vec = 1
 
+    elif algo_type == 'simple':
+        cls = SimpleClass()
+        dim_vec = 1
+
+    elif algo_type == 'saddle':
+        cls = SimpleSaddleClass()
+        dim_vec = 2
+
+    elif algo_type == 'monkey':
+        cls = MonkeySaddleClass()
+        dim_vec = 2
+
     elif algo_type == 'ndiff':
         cls = NonDiffRegressionClass()
         dim_vec = 1
@@ -46,12 +58,12 @@ def get_regression_class(algo_type, features=None, labels=None, string='constant
         dim_vec = 2
 
     elif algo_type == 'trid':
-        cls = TridFunction()
         dim_vec = 10
+        cls = TridFunction(dim_vec=dim_vec)
 
     elif algo_type == 'stoc':
-        cls = StocLossClass(mean=stoc[0], sigma=stoc[1], upper=stoc[2], constant=0., rule=string)
         dim_vec = 10
+        cls = StocLossClass(mean=stoc[0], sigma=stoc[1], upper=stoc[2], constant=0., rule=string, dim_vec=dim_vec)
 
     else:
         print('You entered some wierd "type". Please correct it. Exiting...')
@@ -61,7 +73,49 @@ def get_regression_class(algo_type, features=None, labels=None, string='constant
 class LogisticRegressionClass(object):
 
     def __init__(self, features, labels, stoc=[0., 0., 0.]):
+        self.f_opt = None
+        self.x_opt = None
+        self.mean= stoc[0]
+        self.sigma= stoc[1]
+        self.features = features
+        self.labels = labels
 
+    def prediction(self, x, w, label):
+
+        value = 1./(1 + np.exp(-label*np.dot(x, w)+ (self.sigma*np.random.randn() + self.mean)))
+        return value
+
+    @staticmethod
+    def event_probability(x, w):
+
+        value = 1./(1 + np.exp(-np.dot(x, w)))
+        return value
+
+    def function_update(self, x):
+
+        total_value = 0
+        for label, feature in zip(self.labels, self.features):
+            true_pr = self.prediction(x=x, w=feature, label=label)
+            total_value += -math.log(true_pr) + 0.5*(np.linalg.norm(x)**2)
+        return total_value
+
+    def grad_update(self, x):
+
+        total_update = 0
+        for label, feature in zip(self.labels, self.features):
+            true_pr = self.prediction(x=x, w=feature, label=label)
+            total_update += (1-true_pr)*label*feature - x
+        return -total_update
+
+    def hess_update(self, x):
+
+        pass
+
+class LogisticRegressionClass2(object):
+
+    def __init__(self, features, labels, stoc=[0., 0., 0.]):
+        self.f_opt = None
+        self.x_opt = None
         self.mean= stoc[0]
         self.sigma= stoc[1]
         self.features = features
@@ -103,7 +157,8 @@ class LinearRegressionClass(object):
 
 
     def __init__(self, features, labels, stoc=[0., 0., 0.]):
-
+        self.f_opt = None
+        self.x_opt = None
         self.mean = stoc[0]
         self.sigma = stoc[1]
         self.features = features
@@ -135,6 +190,10 @@ class LinearRegressionClass(object):
 
 class NonDiffRegressionClass(object):
 
+    def __init__(self):
+        self.f_opt = 0
+        self.x_opt = 0
+
     def function_update(self, x):
 
         if abs(x) > 1:
@@ -150,7 +209,114 @@ class NonDiffRegressionClass(object):
             return 2*x
 
 
+class MonkeySaddleClass(object):
+
+    def __init__(self):
+
+        self.f_opt = -2
+        self.x_opt = np.array([2, 2])
+
+    def function_update(self, x):
+
+        f = 0
+
+        if x[1] < -1.:
+            f += (x[1] +1)**2
+        elif x[1] < 1:
+            f += 0
+        elif x[1] < 3:
+            f += (x[1]-2)**2 - 1
+
+        if x[0] < -1.:
+            f += (x[0] +1)**2
+        elif x[0] < 1:
+            f += 0
+        elif x[0] < 3:
+            f += (x[0]-2)**2 - 1
+
+        return f
+
+    def grad_update(self, x):
+
+        grad = np.array([0., 0.])
+
+        if x[1] < -1.:
+            grad[1] = 2*(x[1] +1)
+        elif x[1] < 1:
+            grad[1] = 0
+        else:
+            grad[1] = 2*(x[1]-2)
+
+        if x[0] < -1.:
+            grad[0] = 2*(x[0] +1)
+        elif x[1] < 1:
+            grad[0] = 0
+        else:
+            grad[0] = 2*(x[0]-2)
+
+        return grad
+
+
+class SimpleSaddleClass(object):
+
+    def __init__(self):
+
+        self.f_opt = -2
+        self.x_opt = np.array([2, 2])
+
+    def function_update(self, x):
+
+        f = 0
+
+        if x[1] < 1.:
+            f += (x[1] -1)**2
+        else:
+            f += (x[1]-2)**2 - 1
+
+        if x[0] < 1.:
+            f += (x[0] -1)**2
+        else:
+            f += (x[0]-2)**2 - 1
+
+        return f
+
+    def grad_update(self, x):
+
+        grad = np.array([0., 0.])
+
+        if x[1] < 1.:
+            grad[1] = 2*(x[1] -1)
+        else:
+            grad[1] = 2*(x[1]-2)
+
+        if x[0] < 1.:
+            grad[0] = 2*(x[0] -1)
+        else:
+            grad[0] = 2*(x[0]-2)
+
+        return grad
+
+
+class SimpleClass(object):
+
+    def __init__(self):
+        self.f_opt = 0
+        self.x_opt = 10
+
+    def function_update(self, x):
+
+        return (x-10)**2
+
+    def grad_update(self, x):
+
+        return 2*(x-10)
+
+
 class DiffRegressionClass(object):
+
+    def __init__(self):
+        self.f_opt = 0
+        self.x_opt = 0
 
     def function_update(self, x):
 
@@ -168,13 +334,15 @@ class DiffRegressionClass(object):
 
 class StocLossClass(object):
 
-    def __init__(self, mean, sigma, upper, constant, rule):
+    def __init__(self, mean, sigma, upper, constant, dim_vec, rule='constant'):
 
         self.sigma = sigma
         self.upper = upper
         self.mean = mean
         self.constant = constant
         self.conditon_function = self.get_rule_function(rule)
+        self.f_opt = 0
+        self.x_opt = np.array([0]*dim_vec)
 
     def get_rule_function(self, string):
         if string == 'constant':
@@ -210,6 +378,9 @@ class StocLossClass(object):
         Px = np.dot(P, x-constant)
         xPx = np.dot(x-constant, Px)
         Bx = np.dot(beta, x)
+
+        # print(zeta, xPx, Bx)
+
         return zeta*xPx + Bx
 
     def grad_update(self, x):
@@ -226,7 +397,8 @@ class StocLossClass(object):
 class HuberLossClass(object):
 
     def __init__(self, alpha):
-
+        self.x_opt = 0
+        self.f_opt = 0
         self.alpha = alpha
 
     def function_update(self, x):
@@ -254,6 +426,8 @@ class BoothFunction(object):
 
     def __init__(self):
 
+        self.f_opt = 0
+        self.x_opt = np.array([1,3])
         self.a1 = np.array([1,2])
         self.a2 = np.array([2,1])
         self.b1 = 7
@@ -274,6 +448,8 @@ class BoothFunction(object):
 class BukinN6Function(object):
 
     def __init__(self, factor = 0.01, constant = 10):
+        self.f_opt = 0
+        self.x_opt = np.array([-10, 1])
         self.factor = factor
         self.constant = constant
 
@@ -295,7 +471,8 @@ class BukinN6Function(object):
 class MatyasFunction(object):
 
     def __init__(self):
-
+        self.f_opt = 0
+        self.x_opt = np.array([0,0])
         self.c1 = 0.26
         self.c2 = -0.48
 
@@ -322,7 +499,8 @@ class MatyasFunction(object):
 class ThreeHumpCamelFunction(object):
 
     def __init__(self):
-
+        self.x_opt = np.array([0,0])
+        self.f_opt = 0
         self.c1 = 2
         self.c2 = -1.05
         self.c3 = 1./6
@@ -348,8 +526,9 @@ class ThreeHumpCamelFunction(object):
         return np.array([[h_00, h_01], [h_10, h_11]])
 
 class TridFunction(object):
-    def __init__(self):
-
+    def __init__(self, dim_vec):
+        self.f_opt = -(dim_vec*(dim_vec+4)*(dim_vec-1))/4
+        self.x_opt = np.array([i*(dim_vec + 1-i) for i in range(dim_vec)])
         self.c = 1.
 
     def function_update(self, x):

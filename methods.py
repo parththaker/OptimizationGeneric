@@ -2,27 +2,50 @@ import numpy as np
 import scipy.optimize as opt
 import math
 
-def get_descent_method(descent_type, dim, x=None):
+def get_descent_method(descent_type, dim, nodes=1, x=None):
 
     if descent_type=='grad':
         met = GradDescent(dim=dim, x=x)
+    elif descent_type=='test':
+        met = TestNewGradDescent(dim=dim, x=x)
     elif descent_type=='accelerated':
         met = AcceleratedDescent(dim=dim, x=x)
-    elif descent_type=='stoc':
-        met = StochasticMethod1(dim=dim, x=x)
+    elif descent_type == 'ngd':
+        met = NoisyGradDescent(dim=dim, x=x)
+    elif descent_type == 'gradtent':
+        met = GradTent2Descent(dim=dim, x=x)
+    elif descent_type=='primal':
+        met = WilburPurePrimalMethod(dim=dim, nodes=nodes)
+    elif descent_type=='dladmm':
+        met = DLADMMMethod(dim=dim, nodes=nodes)
     else:
         print('You entered some wierd "type". Please correct it. Exiting...')
         exit()
     return met
 
+class WilburPurePrimalMethod(object):
+    def __init__(self, dim, nodes):
+        self.dim = dim
+        self.nodes = nodes
+        self.x = np.array([np.zeros(dim)] * nodes)
+
+    def update(self, grad_f, grad_gz, grad_gy, edge_matrix, step_size, active_nodes):
+        grad_g = grad_gz
+        x_inter = self.x
+        for i in active_nodes:
+            self_communication_cost = 0
+            for j in range(len(edge_matrix[i])):
+                self_communication_cost += grad_g(self.x[i], self.x[j])*edge_matrix[i,j]
+            self.x[i] = self.x[i] - step_size*(grad_f(self.x[i]) + self_communication_cost)
+        return 1
+
 class DLADMMMethod(object):
     # Needs reforms, not working as expected
-    def __init__(self, dim, nodes, c, rho):
+    def __init__(self, dim, nodes, c=3., rho=50.):
         self.c = c
         self.dim = dim
         self.nodes = nodes
         self.rho = rho
-
         self.x = np.array([np.zeros(dim)] * nodes)
         self.y = np.array([np.zeros(dim)] * nodes)
         self.z = np.array([[np.zeros(dim)] * nodes] * nodes)
@@ -31,26 +54,52 @@ class DLADMMMethod(object):
 
     def summing_vectors(self, matrix, index, neighbours):
         sum_vec = np.zeros(matrix.shape[-1])
-        for i in range(matrix.shape[0]):
-            sum_vec += matrix[i, index] * neighbours[i]
+        for s_index in range(matrix.shape[0]):
+            sum_vec += matrix[s_index, index] * neighbours[s_index]
         return sum_vec
 
     def update(self, grad_f, grad_gy, grad_gz, edge_matrix, step_size, active_nodes):
         x_inter = self.x
+        y_inter = self.y
+        z_inter = self.z
+        temp = 1
+        # print(self.y)
+        # print(active_nodes)
         for i in active_nodes:
-            sum_vec_z = self.summing_vectors(self.z, i, edge_matrix[i])
-            sum_vec_mu = self.summing_vectors(self.mu, i, edge_matrix[i])
-            x_inter[i] = (1. / (self.c + self.rho * (1 + sum(edge_matrix[i])))) * (-grad_f(self.x[i]) + self.c * self.x[i] + -self.lam[i] - sum_vec_mu \
-                                                                       + self.rho * self.y[i] + self.rho * sum_vec_z)
-            self.y[i] = (1./(self.c + self.rho))*(sum([-grad_gy(self.y[i], self.z[i,j]) for j in range(self.nodes)]) + self.c*self.y[i] + self.lam[i] + self.rho*x_inter[i])
-            self.lam[i] = self.lam[i] +self.rho*(x_inter[i] - self.y[i])
-
             neighbours = [j for j in range(edge_matrix.shape[0]) if edge_matrix[i, j] == 1]
+
+            # sum_vec_z = self.summing_vectors(self.z, i, edge_matrix[i])
+            sum_vec_z = sum([self.z[j,i] for j in neighbours])
+            sum_vec_mu = sum([self.mu[j,i] for j in neighbours])
+            # sum_vec_mu = self.summing_vectors(self.mu, i, edge_matrix[i])
+            # print(sum(edge_matrix[i]), edge_matrix[i])
+            # exit()
+            self.x[i] = (1. / (self.c + self.rho * (1 + sum(edge_matrix[i])))) * (-grad_f(self.x[i]) + self.c * self.x[i] - self.lam[i] - sum_vec_mu \
+                                                                       + self.rho * self.y[i] + self.rho * sum_vec_z)
+            y_inter[i] = (1./(self.c + self.rho))*(sum([-(self.y[i]- self.z[i,j]) for j in neighbours]) + self.c*self.y[i] + self.lam[i] + self.rho*self.x[i])
+
+            # print(neighbours)
             for j in neighbours:
-                self.z[i,j] = (1./(self.c+self.rho))*(-grad_gz(self.z[i,j], self.y[i]) + self.c*self.z[i,j] + self.mu[i,j] + self.rho*x_inter[j])
-                self.mu[i,j] = self.mu[i,j] + self.rho*(x_inter[j] - self.z[i,j])
-            print("X ineter :", x_inter[i], " old x  : ", self.x[i])
-            self.x[i] = self.x[i] + step_size*x_inter[i]
+                z_inter[i,j] = (1./(self.c+self.rho))*(-(self.z[i,j]- self.y[i]) + self.c*self.z[i,j] + self.mu[i,j] + self.rho*self.x[j])
+
+            self.y[i] = y_inter[i]
+            for j in neighbours:
+                self.z[i,j] = z_inter[i,j]
+
+            self.lam[i] = self.lam[i] +self.rho*(self.x[i] - self.y[i])
+            for j in range(self.nodes):
+                self.mu[i,j] = self.mu[i,j] + self.rho*(self.x[j] - self.z[i,j])
+
+        # print(self.y)
+        # exit()
+
+            # print("X ineter :", x_inter[i], " old x  : ", self.x[i])
+            # self.x[i] = self.x[i] + step_size*x_inter[i]
+            # self.x[i] = (1-step_size)*self.x[i] + step_size*x_inter[i]
+            # self.x[i] = x_inter[i]
+            # if sum(abs(x_inter[i] - self.x[i])) != 0:
+            #     temp = temp*0
+        return temp
 
 class DADMMMethod(object):
     # Doesnt work needs reformation
@@ -128,13 +177,103 @@ class DADMMMethod(object):
 class GradDescent(object):
     def __init__(self, dim , x=None):
         self.dim = dim
-        if x==None:
+        if x.all() == None:
             self.x = np.random.rand(dim)
         else:
             self.x = x
 
     def update(self, grad_f, step_size):
         self.x = self.x - step_size*grad_f(self.x)
+
+
+class NoisyGradDescent(object):
+    def __init__(self, dim , x=None):
+        self.dim = dim
+        if x.all() == None:
+            self.x = np.random.rand(dim)
+        else:
+            self.x = x
+
+    def samplenoise(self):
+        a = 0.
+        if np.random.rand() < 0.5:
+            a = -0.25
+        else:
+            a = 0.25
+        return a
+
+    def update(self, grad_f, step_size):
+        eps = self.samplenoise()
+        self.x = self.x + np.array([eps for i in range(self.dim)])
+        self.x = self.x - step_size*grad_f(self.x)
+
+class GradTent2Descent(object):
+    def __init__(self, dim , x=None):
+        self.dim = dim
+        if x.all() == None:
+            self.x = np.random.rand(dim)
+        else:
+            self.x = x
+
+    def samplenoise(self, const = 0.25):
+        a = 0.
+        if np.random.rand() < 0.5:
+            a = -const
+        else:
+            a = const
+        return a
+
+    def update(self, grad_f, step_size):
+        const = 0.25
+        grad_value = 0.
+        while grad_value < 0.000005 :
+            print(const)
+            eps = self.samplenoise(const = const)
+            print(eps)
+            self.y1 = self.x + np.array([eps for i in range(self.dim)])
+            self.y2 = self.x - np.array([eps for i in range(self.dim)])
+            self.x = self.x - step_size/2.*grad_f(self.y1) - step_size/2.*grad_f(self.y2)
+            grad_value = np.linalg.norm(grad_f(self.y1) + grad_f(self.y2))
+            print(grad_f(self.y1), grad_f(self.y1), grad_value)
+            print("Const before :", const)
+            const = const*2
+            print("Const after :", const)
+
+
+class GradTentDescent(object):
+    def __init__(self, dim , x=None):
+        self.dim = dim
+        if x.all() == None:
+            self.x = np.random.rand(dim)
+        else:
+            self.x = x
+
+    def samplenoise(self):
+        a = 0.
+        if np.random.rand() < 0.5:
+            a = -0.25
+        else:
+            a = 0.25
+        return a
+
+    def update(self, grad_f, step_size):
+        eps = self.samplenoise()
+        self.y1 = self.x + np.array([eps for i in range(self.dim)])
+        self.y2 = self.x - np.array([eps for i in range(self.dim)])
+        self.x = self.x - step_size/2.*grad_f(self.y1) - step_size/2.*grad_f(self.y2)
+
+
+class TestNewGradDescent(object):
+    def __init__(self, dim , x=None):
+        self.dim = dim
+        if x==None:
+            self.x = np.random.rand(dim)
+        else:
+            self.x = x
+
+    def update(self, grad_f, step_size):
+        self.x = self.x - 2*step_size*grad_f(self.x)*self.x + (step_size*grad_f(self.x))**2*self.x
+
 
 class AcceleratedDescent(object):
     def __init__(self, dim, x=None):

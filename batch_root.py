@@ -47,7 +47,7 @@ if __name__=="__main__":
 
     features, labels = data_generator.get_feature_labels(filename=datafile, entries=entries)
 
-    plot = plot_graph.PlottingError()
+    plot = plot_graph.PlottingError(stoc = True)
 
     x_err = []
     funct_err = []
