@@ -37,10 +37,6 @@ def get_regression_class(algo_type, features=None, labels=None, string='constant
         cls = NonDiffRegressionClass()
         dim_vec = 1
 
-    elif algo_type == 'huber':
-        cls = HuberLossClass(alpha=huber_param)
-        dim_vec = 1
-
     elif algo_type == 'camel':
         cls = ThreeHumpCamelFunction()
         dim_vec = 2
@@ -393,34 +389,6 @@ class StocLossClass(object):
     def hess_update(self, x):
 
         pass
-
-class HuberLossClass(object):
-
-    def __init__(self, alpha):
-        self.x_opt = 0
-        self.f_opt = 0
-        self.alpha = alpha
-
-    def function_update(self, x):
-
-        if abs(x) > self.alpha:
-            return self.alpha*(abs(x) - self.alpha/2.)
-        else:
-            return x**2/2.
-
-    def grad_update(self, x):
-
-        if abs(x) > self.alpha:
-            return np.sign(x)*self.alpha
-        else:
-            return x
-
-    def hess_update(self, x):
-
-        if abs(x) > self.alpha:
-            return 0
-        else:
-            return 1
 
 class BoothFunction(object):
 

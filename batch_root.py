@@ -14,7 +14,6 @@ config_setting = essentials.ConfigSectionMap('config.ini', 'optimize')
 datafile = config_setting['datafile']
 entries = config_setting['entries']
 epoch_limit = config_setting['epoch_limit']
-huber_param = config_setting['huber_param']
 
 # End of Parameteres
 

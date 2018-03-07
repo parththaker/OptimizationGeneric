@@ -3,6 +3,9 @@
 This project includes different types of cost functions, dataset and other supporting
 functionality to help new optimization algorithms run different type of simulations environment.
 
+## Requirment
+* Python 2.7
+
 ## Cost functions
 * Logistic regression
 * Linear regression
